@@ -1,7 +1,7 @@
-TOKEN = "7813564811:AAEXTeCClHPYi6dTSCi8316moFC1mMMzu9Q"
-ADMIN_GROUP_ID = -1002770866604  # ID вашей группы в ТГ с админами
+TOKEN = "" # Вставьте свой токен
+ADMIN_GROUP_ID = -100  # ID вашей группы в ТГ с админами
 DEESEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
-DEESEEK_API_KEY1 = "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"
+DEESEEK_API_KEY1 = "" # Вставьте свой API ключ
 
-developers = [1992388117, 1905816860, 5374257126, 1246238413, 816766525, 731405107]
-owners = {1992388117, 1905816860, 5374257126, 1246238413, 816766525, 731405107}
+developers = [] # Вставьте ID разработчиков
+owners = {} # Вставьте ID владельцев
