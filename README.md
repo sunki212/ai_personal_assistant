@@ -26,7 +26,7 @@ docker build -t agent/pgvector -f Database/Dockerfile Database/
 python run.py
 
 # Cтруктура проекта
-[отредачу по финальной версии]  
+ 
 ai_personal_assistant/  
 │  
 ├── Database/  
