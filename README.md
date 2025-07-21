@@ -19,7 +19,7 @@
 # Инструкция
 Основные шаги по запуску проекта:
 
-1. Вставьте свои данные в файл [config.py]()
+1. Вставьте свои данные в файл [config.py](https://github.com/sunki212/ai_personal_assistant/blob/main/config.py)
    
 2. Запустите Docker
    
