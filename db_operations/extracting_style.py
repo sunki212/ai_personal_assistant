@@ -62,4 +62,4 @@ async def get_conversation_messages(
         
         result.append("\n".join(conv_result))
     
-    return "\n\n".join(result)
+    return "(Обращайся к пользователю также как это указано в примере сообщений): \n\n".join(result)

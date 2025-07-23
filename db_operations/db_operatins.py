@@ -90,7 +90,7 @@ async def cancel_upload(callback: types.CallbackQuery, state: FSMContext):
     
 
 # Обработчик начала загрузки (с проверкой владельца в начале)
-@dboperations_router.message(F.text == "Загрузить новый разговор")
+@dboperations_router.message(F.text == "📤 Загрузить разговор")
 async def start_upload(message: types.Message, state: FSMContext):
     if message.from_user.id not in owners:
         await message.answer("Вы не являетесь владельцем бота")
@@ -212,13 +212,13 @@ async def process_json_file(
         print(f"[DEBUG] Файл {file_name} успешно скачан")
 
         # Получаем дату и время из состояния
-        conversation_date = data['conversation_date']  # Формат YYYY-MM-DD
-        conversation_time = data['conversation_time']  # Формат HH:MM
+        conversation_date = data['conversation_date']
+        conversation_time = data['conversation_time']
         
         # Обработка файла
         async with async_session_maker() as session:
             try:
-                # Получаем список участников, которым нужно обновить username
+                # 1. Сначала добавляем данные в БД
                 participants_without_username = await process_json_and_insert_data(
                     file_path=file_path,
                     session=session,
@@ -227,12 +227,33 @@ async def process_json_file(
                 )
                 await session.commit()
                 
-                # Сохраняем информацию о conversation_id для последующего обновления
+                # 2. Теперь проверяем и исправляем файл
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    json_data = json.load(f)
+                
+                # Проверяем первые два сообщения
+                if len(json_data) >= 2:
+                    first_msg = json_data[0]
+                    second_msg = json_data[1]
+                    
+                    # Если первые два сообщения одинаковые (по тексту и спикеру)
+                    if (first_msg.get('text') == second_msg.get('text') and 
+                        first_msg.get('speaker') == second_msg.get('speaker')):
+                        
+                        # Удаляем дубликат
+                        json_data.pop(1)
+                        
+                        # Перезаписываем файл
+                        with open(file_path, 'w', encoding='utf-8') as f:
+                            json.dump(json_data, f, ensure_ascii=False, indent=2)
+                        
+                        print(f"[DEBUG] Удален дубликат первого сообщения в файле")
+                
+                # 3. Продолжаем обычную обработку
                 conversation_id = await get_next_conversation_id(session) - 1
                 
                 await message.answer(f"✅ Файл {file_name} успешно обработан\nДанные сохранены в БД")
                 
-                # Если есть участники без username, запрашиваем их
                 if participants_without_username:
                     await state.update_data(
                         conversation_id=conversation_id,
@@ -552,18 +573,20 @@ async def process_json_and_insert_data(
     if not data:
         return participants_without_username
     
-    previous_speaker = None
-    combined_texts = []
-    
-    for item in data:
+    # Инициализация первым сообщением
+    first_item = data[0]
+    previous_speaker = first_item.get('speaker')
+    combined_texts = [first_item.get('text')] if previous_speaker else []
+
+    for item in data[1:]:  # Обрабатываем остальные сообщения
         speaker = item.get('speaker')
         text = item.get('text')
-        start = item.get('start')  
+        start = item.get('start')
         
         if not all([speaker, text, start]):
             continue
         
-        # Рассчитываем время сообщения (время начала разговора + offset из JSON)
+        # Рассчитываем время сообщения
         start_seconds = int(start)
         total_seconds = conv_time.hour * 3600 + conv_time.minute * 60 + int(start_seconds/1000)
         hours = total_seconds // 3600 % 24
@@ -576,7 +599,7 @@ async def process_json_and_insert_data(
             continue
             
         # Обрабатываем накопленные сообщения
-        if combined_texts:
+        if combined_texts and previous_speaker:
             await process_speaker_messages(
                 session=session,
                 speaker=previous_speaker,
@@ -588,7 +611,7 @@ async def process_json_and_insert_data(
             
         combined_texts = [text]
         previous_speaker = speaker
-    
+
     # Обрабатываем последнего спикера
     if combined_texts and previous_speaker:
         await process_speaker_messages(
@@ -597,7 +620,7 @@ async def process_json_and_insert_data(
             texts=combined_texts,
             conversation_id=conversation_id,
             current_date=conv_date,
-            message_time=message_time
+            message_time=message_time  # Используем последнее вычисленное время
         )
     
     return participants_without_username

@@ -13,8 +13,8 @@ from config import ADMIN_GROUP_ID, owners, developers
 from lists_of_users.create_JSON_lists import load_admitted, load_blacklist, load_applications
 from models import UserData
 from generate import ai_generate, clear_context
-from keyboards import application_key, owners_keyboard
-from db_operations.db_operatins import get_sessionmaker, dboperations_router, get_message_contexts
+from keyboards import application_key, owners_keyboard, admitted_keyboard
+from db_operations.db_operatins import get_sessionmaker, get_message_contexts
 from db_operations.process_messages import embedding_single_message, process_single_message
 from Database.db_create import find_similar_messages
 
@@ -96,9 +96,8 @@ async def cmd_start(message: Message, state: FSMContext):
             "🔹 Ответит на вопросы, одобренные самим Владимиром Викторовичем и сохранённые в моей базе данных.\n"
             "🔹 Поддержит беседу так, будто вы общаетесь лично с Владимиром Викторовичем.\n\n"
             "💬 Просто напишите мне — и начнём! 🚀\n\n"
-            "**P.S. Если хотите, можете даже представить, что это он сам вам отвечает — наш маленький секрет!** 😉"
-        )
-        await state.set_state(Form_with_AI.default_communication)
+            "**P.S. Если хотите, можете даже представить, что это он сам вам отвечает — наш маленький секрет!** 😉",
+            reply_markup=admitted_keyboard)
     else:
         await message.answer(
             "У вас нет доступа к боту, но вы можете оставить заявку.",
@@ -221,10 +220,14 @@ async def process_default_communication(
     # Проверка команды выхода в первую очередь
     if message.text and message.text.lower() in ("!!!выход!!!", "/exit"):
         await state.clear()
-        await message.answer(
+        if message.from_user.username in load_admitted():
+            await message.answer(
             "✅ Режим общения с ИИ деактивирован",
-            reply_markup=owners_keyboard
-        )
+            reply_markup=admitted_keyboard)
+        elif message.from_user.id in owners:
+            await message.answer(
+            "✅ Режим общения с ИИ деактивирован",
+            reply_markup=owners_keyboard)
         print(f"Пользователь {message.from_user.id} вышел из режима ИИ")
         return
     
@@ -251,11 +254,11 @@ async def process_default_communication(
         promt_type="The_main_promt",
         session_maker=session_maker
     )
-    print("\n\n"+response)
+    print(f"{message.text}\n\n {response}")
     if re.findall(r"\|.+\|", response):
     # Создаем сессию через session_maker
         async with session_maker() as session:
-            embed_response = await embedding_single_message(await process_single_message(str(re.findall(r"(?<=\|\{\{).+(?=\}\}\|)",response)[0]).strip("|")))
+            embed_response = await embedding_single_message(await process_single_message(str(re.findall(r"(?<=\|).+(?=\|)",response)[0]).strip("|")))
             message_tuples = await find_similar_messages(
                 session=session,  # Передаем реальную сессию
                 embedding=embed_response,
@@ -265,7 +268,8 @@ async def process_default_communication(
                 message_tuples=message_tuples,
                 session=session  # Тоже передаем сессию
             )
-            print(message_tuples)
+            print(f' Результаты косинусного поиска \n{message_tuples} \n\nКонтекст:\n  {context}')
+            
         response = await ai_generate(
             user_id=message.from_user.id,
             username=message.from_user.username,

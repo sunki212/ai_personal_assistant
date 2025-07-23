@@ -7,7 +7,7 @@ from aiogram.fsm.state import State, StatesGroup
 from config import owners
 from lists_of_users.create_JSON_lists import load_applications, load_admitted, load_blacklist, save_admitted, save_applications, save_blacklist
 from handlers.handlers import Form_with_AI
-from keyboards import owners_keyboard
+from keyboards import owners_keyboard, admitted_keyboard
 
 owners_router = Router()
 
@@ -288,20 +288,21 @@ async def handle_chat_with_bot(message: types.Message, state: FSMContext):
     Рабочий обработчик кнопки "Общаться с ботом" для владельцев
     """
     # Проверяем, является ли пользователь владельцем
-    if not await is_owner(message):
+    if f'@{message.from_user.username}' not in load_admitted():
+        print(load_admitted(), message.from_user.username)
         await message.answer(
-            "⚠️ Эта функция доступна только владельцам бота",
-            reply_markup=owners_keyboard  # Возвращаем клавиатуру
+            "⚠️ Эта функция Вам не доступна",
+            reply_markup=admitted_keyboard  # Возвращаем клавиатуру
         )
         return
-    
-    # Устанавливаем состояние для общения с ИИ
-    await state.set_state(Form_with_AI.default_communication)
-    await message.answer(
-        "Режим общения с ботом активирован. Вы можете начать диалог.\n\n"
-        'Для выхода введите "!!!выход!!!" или "/exit"',
-        reply_markup=ReplyKeyboardRemove()  # Убираем клавиатуру
-    )
+    else:
+        # Устанавливаем состояние для общения с ИИ
+        await message.answer(
+            "Режим общения с ботом активирован. Вы можете начать диалог.\n\n"
+            'Для выхода введите "!!!выход!!!" или "/exit"',
+            reply_markup=ReplyKeyboardRemove()  # Убираем клавиатуру
+        )
+        await state.set_state(Form_with_AI.default_communication)
 
 
 # Дополнительно: обработчик для проверки состояния

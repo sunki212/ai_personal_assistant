@@ -15,6 +15,14 @@ owners_keyboard = ReplyKeyboardMarkup(
     one_time_keyboard=True
 )
 
+admitted_keyboard = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="💬 Общаться с ботом")]
+    ],
+    resize_keyboard=True,
+    one_time_keyboard=True
+)
+
 # Кнопка отмены
 def get_cancel_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[

@@ -83,7 +83,7 @@ async def ai_generate(
 
     try:
         completion = await client.chat.completions.create(
-            model="deepseek/deepseek-chat:free",
+            model="deepseek/deepseek-chat-v3-0324:free",
             messages=context.messages
         )
 
