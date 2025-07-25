@@ -161,7 +161,7 @@ async def handle_inline_buttons(callback: types.CallbackQuery, state: FSMContext
                 # Попытка уведомить пользователя
                 try:
                     await bot.send_message(
-                        chat_id=username,
+                        chat_id=f'@{username}',
                         text=f"🎉 Ваша заявка одобрена, {full_name}! Теперь вы можете пользоваться ботом."
                     )
                 except Exception as e:
